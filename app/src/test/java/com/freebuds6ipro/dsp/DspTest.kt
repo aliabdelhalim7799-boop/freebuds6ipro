@@ -22,10 +22,17 @@ class DspTest {
         val x = noise(0.01f)
         assertTrue(tailDb(run(NoiseSuppressor(fs, 18f), x)) < tailDb(x) - 6)
     }
-    @Test fun noiseSuppressorKeepsLoudSignal() {
-        val x = sine(500.0, 0.3f)
+        @Test fun noiseSuppressorKeepsSpeechLikeBursts() {
+        val seg = fs / 2
+        val r = Random(2)
+        val x = FloatArray(seg * 8) { i ->
+            if ((i / seg) % 2 == 0) (0.3 * sin(2 * PI * 500 * i / fs)).toFloat()
+            else 0.002f * (r.nextFloat() * 2 - 1)
+        }
         val y = run(NoiseSuppressor(fs, 18f), x)
-        assertEquals(tailDb(x), tailDb(y), 1.5f)
+        val from = seg * 4 + fs / 20
+        val to = seg * 5
+        assertEquals(Metrics.rmsDb(x, from, to), Metrics.rmsDb(y, from, to), 1.5f)
     }
     @Test fun agcRaisesQuietSignalWithinMaxGain() {
         val x = sine(1000.0, 0.01f, 6.0); val y = run(Agc(fs, -20f, 18f), x)
